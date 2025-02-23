@@ -7,14 +7,17 @@ Author(s): Harry Upton
 
 Implementation Notes
 --------------------
-
+- Runs sensor in 'normal mode':
+    - accelerometer: +/- 8g; 50Hz; no averaging; filter to ODR/2
+    - gyroscope: +/- 2k deg/s; 800Hz; no averaging; filter to ODR/2
 
 
 Missing Features (ToDo):
 ------------------------
 - Add support for other modes (low power, etc.)
 - Make code more readable by writing custom _writeX and _readX functions that sort out byte order
-
+- Allow changing of BW, ODR, etc.
+- Instead of hardcoded scale factors for unit conversion, do automatically depending on mode.
 
 """
 import smbus2 as smb
@@ -64,6 +67,24 @@ class BMI323:
         time.sleep(0.01)
         self.bus.write_i2c_block_data(self.addr, REG_GYR_CONFIG, [0x4B,0x40]) #0x404B = normal
         time.sleep(0.01)
+
+    def read_acceleration(self) -> tuple[float, float, float]:
+        # Scale factor: 1 / (4.10 LSB/mg) *  (9.81/1000) = 0.002392
+        # Output is in m/s^2
+        acc_data = self.bus.read_i2c_block_data(self.addr, REG_GYR_DATA_X, 8)
+        acc_data_x = int.from_bytes(acc_data[2:4], byteorder='little', signed=True) * 0.002392
+        acc_data_y = int.from_bytes(acc_data[4:6], byteorder='little', signed=True) * 0.002392
+        acc_data_z = int.from_bytes(acc_data[6:8], byteorder='little', signed=True) * 0.002392
+        return (acc_data_x, acc_data_y, acc_data_z)
+
+    def read_gyro(self) -> tuple[float, float, float]:
+        # Scale factor: 1 / (16.4 LSB/deg/s) = 0.06098
+        # Output is in deg/s
+        gyr_data = self.bus.read_i2c_block_data(self.addr, REG_GYR_DATA_X, 8)
+        gyr_data_x = int.from_bytes(gyr_data[2:4], byteorder='little', signed=True) * 0.06098
+        gyr_data_y = int.from_bytes(gyr_data[4:6], byteorder='little', signed=True) * 0.06098
+        gyr_data_z = int.from_bytes(gyr_data[6:8], byteorder='little', signed=True) * 0.06098
+        return (gyr_data_x, gyr_data_y, gyr_data_z)
     
     # Soft reset BMI323 and close I2C bus
     def close(self):
