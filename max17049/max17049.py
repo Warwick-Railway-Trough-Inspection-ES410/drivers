@@ -13,6 +13,10 @@ Implementation Notes
 
 Missing Features (ToDo):
 ------------------------
+- ALL configuration stuff
+- Quick start (not sure if necessary yet)
+- Temperature compensation stuff
+
 
 """
 import smbus2 as smb
