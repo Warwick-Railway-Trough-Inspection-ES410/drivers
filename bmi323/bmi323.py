@@ -39,9 +39,9 @@ REG_GYR_DATA_Y = 0x07
 REG_GYR_DATA_Z = 0x08
 
 class BMI323:
-    def __init__(self, i2c_channel: int, i2c_addr: int = 0x68):
+    def __init__(self, i2c_channel: int = 1, i2c_addr: int = 0x68):
         # Intialise I2C bus
-        self.bus = smb.SMBus(1)
+        self.bus = smb.SMBus(i2c_channel)
         self.bus.open(i2c_channel)
         self.addr = i2c_addr
         
