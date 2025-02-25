@@ -5,6 +5,8 @@ Library for interfacing with Bosch BMI323 IMU over I2C.
 
 Author(s): Harry Upton
 
+Datasheet: https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bmi323-ds000.pdf
+
 Implementation Notes
 --------------------
 - Runs sensor in 'normal mode':
