@@ -33,9 +33,9 @@ REG_ACC_CONFIG = 0x20
 REG_GYR_CONFIG = 0x21
 REG_CMD = 0x7E
 
-RED_ACC_DATA_X = 0x03
-RED_ACC_DATA_Y = 0x04
-RED_ACC_DATA_Z = 0x05
+REG_ACC_DATA_X = 0x03
+REG_ACC_DATA_Y = 0x04
+REG_ACC_DATA_Z = 0x05
 REG_GYR_DATA_X = 0x06
 REG_GYR_DATA_Y = 0x07
 REG_GYR_DATA_Z = 0x08
@@ -73,7 +73,7 @@ class BMI323:
     def read_acceleration(self) -> tuple[float, float, float]:
         # Scale factor: 1 / (4.10 LSB/mg) *  (9.81/1000) = 0.002392
         # Output is in m/s^2
-        acc_data = self.bus.read_i2c_block_data(self.addr, REG_GYR_DATA_X, 8)
+        acc_data = self.bus.read_i2c_block_data(self.addr, REG_ACC_DATA_X, 8)
         acc_data_x = int.from_bytes(acc_data[2:4], byteorder='little', signed=True) * 0.002392
         acc_data_y = int.from_bytes(acc_data[4:6], byteorder='little', signed=True) * 0.002392
         acc_data_z = int.from_bytes(acc_data[6:8], byteorder='little', signed=True) * 0.002392
