@@ -22,14 +22,14 @@ Missing Features (ToDo):
 import smbus2 as smb
 import time
 
-MAX17043_VCELL = 0x02
-MAX17043_SOC = 0x04
-MAX17043_MODE = 0x06
-MAX17043_VERSION = 0x08
-MAX17043_CONFIG = 0x0c
-MAX17043_COMMAND = 0xfe
+MAX17049_VCELL = 0x02
+MAX17049_SOC = 0x04
+MAX17049_MODE = 0x06
+MAX17049_VERSION = 0x08
+MAX17049_CONFIG = 0x0c
+MAX17049_COMMAND = 0xfe
 
-class BMI323:
+class MAX17049:
     def __init__(self, i2c_channel: int = 1, i2c_addr: int = 0x36):
         # Intialise I2C bus
         self.bus = smb.SMBus(i2c_channel)
@@ -42,7 +42,7 @@ class BMI323:
     def read_soc(self):
         # Scale factor: 1 / (1%/256) = 0.00390625/%
         # Output is in %
-        soc_data = self.bus.read_i2c_block_data(self.addr, MAX17043_SOC, 2)
+        soc_data = self.bus.read_i2c_block_data(self.addr, MAX17049_SOC, 2)
         soc = ((soc_data >> 8) + 0.00390625 * (soc_data & 0x00ff))
         return soc
 
@@ -50,6 +50,6 @@ class BMI323:
     def read_cell_voltage(self):
         # Scale factor: 78.125 uV/cell = 7.8125e-05 V/cell
         # Output is in V/cell
-        voltage_data = self.bus.read_i2c_block_data(self.addr, MAX17043_VCELL, 2)
+        voltage_data = self.bus.read_i2c_block_data(self.addr, MAX17049_VCELL, 2)
         volts = ((voltage_data[0] << 8) | voltage_data[1])
         return (volts * 7.8125e-05)
