@@ -1,6 +1,6 @@
 """
 drv8833.py
-===========
+==========
 Library for controlling DRV8833 motor drivers
 
 Author(s): Harry Upton
@@ -9,43 +9,79 @@ Datasheet: https://www.ti.com/lit/ds/symlink/drv8833.pdf
 
 Implementation Notes
 --------------------
-- A PWMController object must be created first and passed to the DRV8833 objects.
- There must ONLY BE ONE of these, it runs the dma_pwm C functions.
+- configure_dma() must be ran first, it must be ran once total (not once per DRV8833).
+  Typically this is the only static function you need to run yourself.
+- Use create_pwm_channel to first get a pwm_channel_id from a pin number.
+  DRV8833.configure_pwm() will do this for all the motor pins automatically, 
+  so you do not need to do it for each pin yourself.
+- DRV8833.configure_gpio() also needs to be run to setup the sleep and fault signals.
 - PWM does have an initial configuration, however can be modified with configure_pwm function.
-- Multiple DRV8833 objects can be instantiated (as long as they use different pins)
+- Multiple DRV8833 objects can be instantiated (as long as they use different pins).
+- You will mostly be interacting with DRV8833.set_motorA_speed/.set_motorB_speed/.set_sleep/.set_fault functions.
+- Call DRV8833.cleanup() when you are done. This frees the GPIO and DMA channels.
 
 Missing Features (ToDo):
 ------------------------
 
 """
 import RPi.GPIO as GPIO
-import os
+import subprocess
+
+ERROR_NUMS = {1: "ECHNLREQ",
+    2: "EINVPW",   
+    3: "ENOFREECHNL",
+    4: "EINVCHNL", 
+    5: "EINVDUTY",    
+    6: "EINVGPIO",   
+    7: "EFREQNOTMET",
+    8: "EPWMNOTSET", 
+    9: "ENOPIVER", 
+    10: "EMAPFAIL",
+    11: "ESIGHDNFAIL"}
 
 def create_pwm_channel(pin_number: int) -> int:
     # Returns a channel ID given a pin number
-    return 0
+    result = subprocess.run(["request_channel", pin_number], capture_output=True, text=True, shell=True)
+    channel = result.stdout
+    if channel in ERROR_NUMS:
+        raise OSError(f"DMA request_channel error: {ERROR_NUMS[channel]}")
+    return channel
 
-def free_pwm_channel(channel_id: int):
+
+def free_pwm_channel(channel_id: int) -> int:
     # Will free a channel given its ID
-    pass
+    result = subprocess.run(["free_channel", channel_id], capture_output=True, text=True, shell=True)
+    out = result.stdout
+    if out != 0:
+        raise OSError(f"DMA free_channel error: {out}")
 
-def configure_dma() -> int:
+def configure_dma(pages: int, pulse_width: float) -> int:
     # Initial setup for device PWM DMA - call once
-    pass
+    result = subprocess.run(["request_channel", pages, pulse_width], capture_output=True, text=True, shell=True)
+    out = result.stdout
+    if out in ERROR_NUMS:
+        raise OSError(f"DMA configure_dma error: {ERROR_NUMS[out]}")
 
-def configure_channel() -> int:
+def configure_channel(channel_id: int) -> int:
     # Configure a channel (frequency, duty cycle, etc.)
     pass
+    
 
-def enable_channel() -> int:
+def enable_channel(channel_id: int) -> int:
     # Enable a channel (output PWM signal) 
-    pass
+    result = subprocess.run(["enable_pwm", channel_id], capture_output=True, text=True, shell=True)
+    out = result.stdout
+    if out in ERROR_NUMS:
+        raise OSError(f"DMA enable_pwm error: {ERROR_NUMS[out]}")
 
-def disable_channel() -> int:
+def disable_channel(channel_id: int) -> int:
     # Disable a channel (stop outputting PWM signal)
-    pass
+    result = subprocess.run(["disable_pwm", channel_id], capture_output=True, text=True, shell=True)
+    out = result.stdout
+    if out in ERROR_NUMS:
+        raise OSError(f"DMA disable_pwm error: {ERROR_NUMS[out]}")
 
-def set_channel_duty_cycle() -> int:
+def set_channel_duty_cycle(channel_id: int, duty_cycle: int) -> int:
     # Adjust channel duty cycle (control motor speed)
     pass
 
@@ -80,10 +116,20 @@ class DRV8833:
 
 
     def set_motorA_speed(self, speed: int):
-        pass
+        if speed >= 0:
+            set_channel_duty_cycle(self.A1_channel, x)
+            set_channel_duty_cycle(self.A2_channel, 0)
+        else:
+            set_channel_duty_cycle(self.A1_channel, 0)
+            set_channel_duty_cycle(self.A2_channel, x)
 
     def set_motorB_speed(self, speed: int):
-        pass
+        if speed >= 0:
+            set_channel_duty_cycle(self.B1_channel, x)
+            set_channel_duty_cycle(self.B2_channel, 0)
+        else:
+            set_channel_duty_cycle(self.B1_channel, 0)
+            set_channel_duty_cycle(self.B2_channel, x)
 
     def set_sleep(self, sleep_state: bool):
         if type(sleep_state) != bool:
