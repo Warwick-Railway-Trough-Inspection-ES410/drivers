@@ -11,7 +11,7 @@ Implementation Notes
 --------------------
 - configure_dma() must be ran first, it must be ran once total (not once per DRV8833).
   Typically this is the only static function you need to run yourself.
-- Use create_pwm_channel to first get a pwm_channel_id from a pin number.
+- Use request_pwm_channel to first get a pwm_channel_id.
   DRV8833.configure_pwm() will do this for all the motor pins automatically, 
   so you do not need to do it for each pin yourself.
 - DRV8833.configure_gpio() also needs to be run to setup the sleep and fault signals.
@@ -22,6 +22,8 @@ Implementation Notes
 
 Missing Features (ToDo):
 ------------------------
+- Configure dma_pwm from Python
+
 
 """
 import RPi.GPIO as GPIO
@@ -39,12 +41,14 @@ ERROR_NUMS = {1: "ECHNLREQ",
     10: "EMAPFAIL",
     11: "ESIGHDNFAIL"}
 
-def create_pwm_channel(pin_number: int) -> int:
+def request_pwm_channel() -> int:
     # Returns a channel ID given a pin number
-    result = subprocess.run(["request_channel", pin_number], capture_output=True, text=True, shell=True)
+    result = subprocess.run(["request_channel"], capture_output=True, text=True, shell=True)
     channel = result.stdout
     if channel in ERROR_NUMS:
         raise OSError(f"DMA request_channel error: {ERROR_NUMS[channel]}")
+    if channel == -1:
+        raise OSError("Invalid number of command line args.")
     return channel
 
 
@@ -54,6 +58,8 @@ def free_pwm_channel(channel_id: int) -> int:
     out = result.stdout
     if out != 0:
         raise OSError(f"DMA free_channel error: {out}")
+    
+    return out
 
 def configure_dma(pages: int, pulse_width: float) -> int:
     # Initial setup for device PWM DMA - call once
@@ -61,10 +67,21 @@ def configure_dma(pages: int, pulse_width: float) -> int:
     out = result.stdout
     if out in ERROR_NUMS:
         raise OSError(f"DMA configure_dma error: {ERROR_NUMS[out]}")
+    if out == -1:
+        raise OSError("Invalid number of command line args.")
+    
+    return out
 
-def configure_channel(channel_id: int) -> int:
-    # Configure a channel (frequency, duty cycle, etc.)
-    pass
+def configure_channel(channel_id: int, gpio: int, freq: float, duty: float) -> int:
+    # Configure a channel (pin num, frequency, duty cycle, etc.)
+    result = subprocess.run(["configure_channel", channel_id, gpio, freq, duty], capture_output=True, text=True, shell=True)
+    out = result.stdout
+    if out in ERROR_NUMS:
+        raise OSError(f"DMA configure_dma error: {ERROR_NUMS[out]}")
+    if out == -1:
+        raise OSError("Invalid number of command line args.")
+    
+    return out
     
 
 def enable_channel(channel_id: int) -> int:
@@ -73,6 +90,10 @@ def enable_channel(channel_id: int) -> int:
     out = result.stdout
     if out in ERROR_NUMS:
         raise OSError(f"DMA enable_pwm error: {ERROR_NUMS[out]}")
+    if out == -1:
+        raise OSError("Invalid number of command line args.")
+    
+    return out
 
 def disable_channel(channel_id: int) -> int:
     # Disable a channel (stop outputting PWM signal)
@@ -80,10 +101,10 @@ def disable_channel(channel_id: int) -> int:
     out = result.stdout
     if out in ERROR_NUMS:
         raise OSError(f"DMA disable_pwm error: {ERROR_NUMS[out]}")
-
-def set_channel_duty_cycle(channel_id: int, duty_cycle: int) -> int:
-    # Adjust channel duty cycle (control motor speed)
-    pass
+    if out == -1:
+        raise OSError("Invalid number of command line args.")
+    
+    return out
 
 # One of these can be instantiated per chip
 class DRV8833:
@@ -93,13 +114,15 @@ class DRV8833:
                  PIN_BIN1: int,
                  PIN_BIN2: int,
                  PIN_SLEEP: int,
-                 PIN_FAULT: int):
+                 PIN_FAULT: int,
+                 FREQUENCY: float = 100):
         self.PIN_AIN1 = PIN_AIN1
         self.PIN_AIN2 = PIN_AIN2
         self.PIN_BIN1 = PIN_BIN1
         self.PIN_BIN2 = PIN_BIN2
         self.PIN_SLEEP = PIN_SLEEP
         self.PIN_FAULT = PIN_FAULT
+        self.freq = FREQUENCY
 
     def configure_gpio(self):
         GPIO.setmode(GPIO.BOARD) # Use board pin numbers, NOT BCM numbers
@@ -109,27 +132,31 @@ class DRV8833:
 
 
     def configure_pwm(self):
-        self.A1_channel = create_pwm_channel(self.PIN_AIN1)
-        self.A2_channel = create_pwm_channel(self.PIN_AIN2)
-        self.B1_channel = create_pwm_channel(self.PIN_BIN1)
-        self.B2_channel = create_pwm_channel(self.PIN_BIN2)
+        self.A1_channel = request_pwm_channel()
+        self.A2_channel = request_pwm_channel()
+        self.B1_channel = request_pwm_channel()
+        self.B2_channel = request_pwm_channel()
+
+        configure_channel(self.A1_channel, self.PIN_AIN1, self.freq, 0)
+        configure_channel(self.A2_channel, self.PIN_AIN2, self.freq, 0)
+        configure_channel(self.B1_channel, self.PIN_BIN1, self.freq, 0)
+        configure_channel(self.B2_channel, self.PIN_BIN2, self.freq, 0)
 
 
-    def set_motorA_speed(self, speed: int):
+    def set_motorA_speed(self, speed: float):
         if speed >= 0:
-            set_channel_duty_cycle(self.A1_channel, x)
-            set_channel_duty_cycle(self.A2_channel, 0)
+            configure_channel(self.A1_channel, self.PIN_AIN1, self.freq, speed)
+            configure_channel(self.A2_channel, self.PIN_AIN2, self.freq, 0)
         else:
-            set_channel_duty_cycle(self.A1_channel, 0)
-            set_channel_duty_cycle(self.A2_channel, x)
-
+            configure_channel(self.A1_channel, self.PIN_AIN1, self.freq, 0)
+            configure_channel(self.A2_channel, self.PIN_AIN2, self.freq, speed)
     def set_motorB_speed(self, speed: int):
         if speed >= 0:
-            set_channel_duty_cycle(self.B1_channel, x)
-            set_channel_duty_cycle(self.B2_channel, 0)
+            configure_channel(self.B1_channel, self.PIN_BIN1, self.freq, speed)
+            configure_channel(self.B2_channel, self.PIN_BIN2, self.freq, 0)
         else:
-            set_channel_duty_cycle(self.B1_channel, 0)
-            set_channel_duty_cycle(self.B2_channel, x)
+            configure_channel(self.B1_channel, self.PIN_BIN1, self.freq, 0)
+            configure_channel(self.B2_channel, self.PIN_BIN2, self.freq, speed)
 
     def set_sleep(self, sleep_state: bool):
         if type(sleep_state) != bool:
