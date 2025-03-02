@@ -30,7 +30,7 @@ MAX17049_CONFIG = 0x0c
 MAX17049_COMMAND = 0xfe
 
 class MAX17049:
-    def __init__(self, i2c_channel: int = 1, i2c_addr: int = 0x36):
+    def __init__(self, i2c_channel: int = 10, i2c_addr: int = 0x36):
         # Intialise I2C bus
         self.bus = smb.SMBus(i2c_channel)
         self.bus.open(i2c_channel)
@@ -43,7 +43,7 @@ class MAX17049:
         # Scale factor: 1 / (1%/256) = 0.00390625/%
         # Output is in %
         soc_data = self.bus.read_i2c_block_data(self.addr, MAX17049_SOC, 2)
-        soc = ((soc_data >> 8) + 0.00390625 * (soc_data & 0x00ff))
+        soc = ((soc_data[0]) + 0.00390625 * (soc_data[1] & 0x00ff))
         return soc
 
 

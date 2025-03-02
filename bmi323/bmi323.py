@@ -41,7 +41,7 @@ REG_GYR_DATA_Y = 0x07
 REG_GYR_DATA_Z = 0x08
 
 class BMI323:
-    def __init__(self, i2c_channel: int = 1, i2c_addr: int = 0x68):
+    def __init__(self, i2c_channel: int = 10, i2c_addr: int = 0x68):
         # Intialise I2C bus
         self.bus = smb.SMBus(i2c_channel)
         self.bus.open(i2c_channel)
@@ -55,13 +55,13 @@ class BMI323:
         self.chip_id = self.bus.read_i2c_block_data(self.addr, REG_CHIP_ID, 4) # First read.
 
         self.device_status = self.bus.read_i2c_block_data(self.addr, REG_DEVICE_STATUS, 4)
-        if self.device_status != 0b0:
-            raise RuntimeError("BMI323 I2C error: power error (device_status != 0b0)")
+        if self.device_status != [0,0,0,0]:
+            raise RuntimeError(f"BMI323 I2C error: power error with {self.device_status} (device_status != 0b0)")
         time.sleep(0.01)
 
         self.sensor_status = self.bus.read_i2c_block_data(self.addr, REG_SENSOR_STATUS, 4)
-        if self.sensor_status != 0b1:
-            raise RuntimeError("BMI323 I2C error: initialisation error (sensor_status != 0b1)")
+        if (self.sensor_status == [0,0,1,0] or self.sensor_status == [0,0,0,0]) == False:
+            raise RuntimeError(f"BMI323 I2C error: initialisation error with {self.sensor_status} (sensor_status != 0b1)")
         time.sleep(0.01)
 
         # Configure normal power mode
