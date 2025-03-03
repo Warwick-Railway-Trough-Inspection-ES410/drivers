@@ -13,6 +13,6 @@ To be able to use PWM on more than 2 pins, and use it on any pin, the DMA periph
 
 
 ## References
-https://github.com/DFRobot/DFRobot_MAX17043/tree/master/python/raspberry
-https://abyz.me.uk/rpi/pigpio/index.html
-https://github.com/manuelbaum/pyBMI323
+https://github.com/DFRobot/DFRobot_MAX17043/tree/master/python/raspberry \
+https://abyz.me.uk/rpi/pigpio/index.html \
+https://github.com/manuelbaum/pyBMI323 \
