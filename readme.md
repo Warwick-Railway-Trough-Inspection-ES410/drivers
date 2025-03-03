@@ -12,8 +12,6 @@ For PWM motor control:\
 To be able to use PWM on more than 2 pins, and use it on any pin, the DMA peripheral is required. The easiest way to implement this (and what is done in this script), is with `pigpio`. Follow [this](https://abyz.me.uk/rpi/pigpio/download.html) link for installation instructions.
 
 
-
-
 ## References
 https://github.com/DFRobot/DFRobot_MAX17043/tree/master/python/raspberry
 https://abyz.me.uk/rpi/pigpio/index.html
