@@ -1,3 +1,0 @@
-[submodule "dma_pwm"]
-	path = dma_pwm
-	url = https://github.com/besp9510/dma_pwm.git
