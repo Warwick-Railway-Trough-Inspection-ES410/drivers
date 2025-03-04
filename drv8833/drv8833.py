@@ -37,7 +37,6 @@ class DRV8833:
         self.PIN_BIN2 = PIN_BIN2
         self.PIN_nSLEEP = PIN_nSLEEP
         self.PIN_nFAULT = PIN_nFAULT
-        self.freq = FREQUENCY
 
     def configure_gpio(self):
         self.pi = pigpio.pi()
